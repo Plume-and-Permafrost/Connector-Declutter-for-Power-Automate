@@ -1,0 +1,243 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Connector Declutter for Power Automate settings</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { max-width: 720px; margin: 0 auto; padding: 28px 24px 60px; }
+  .rule { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 0 0 10px; }
+  .rule .row { margin-top: 6px; }
+  .colours { align-items: stretch; }
+  .swatch { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .swatch input[type="color"] {
+    width: 34px; height: 30px; padding: 0; flex: none; cursor: pointer;
+    background: none; border: 1px solid var(--line); border-radius: 4px;
+  }
+  .swatch > span { display: flex; flex-direction: column; line-height: 1.25; }
+  .swatch b { font-weight: 600; font-size: 12px; }
+  .swatch .muted { font-size: 11px; }
+  .preview { margin-top: 10px; display: grid; gap: 4px; }
+  .preview div {
+    font-size: 12px; padding: 7px 9px; border-radius: 4px;
+    border: 1px solid var(--line);
+  }
+  table.ids { width: 100%; border-collapse: collapse; margin: 0 0 6px; }
+  table.ids td.actions { width: 1%; white-space: nowrap; }
+  table.ids td { padding: 4px 0; border-bottom: 1px solid var(--line); }
+  table.ids tr:first-child td { border-top: 1px solid var(--line); }
+  table.ids td.actions { padding-left: 8px; }
+  table.ids td input[type="text"] { margin: 0; }
+  table.ids td.empty { color: var(--muted); font-size: 12px; padding: 8px 0; }
+  table.ids button { padding: 3px 9px; font-size: 12px; }
+  .picker {
+    max-height: 320px; overflow-y: auto; margin: 8px 0 6px;
+    border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px;
+  }
+  .picker label {
+    display: flex; gap: 8px; align-items: baseline; cursor: pointer;
+    padding: 4px 2px; font-size: 13px; border-bottom: 1px solid var(--line);
+  }
+  .picker label:last-child { border-bottom: none; }
+  .picker label[hidden] { display: none; }
+  .picker input { flex: none; margin: 0; }
+  .picker .name { margin-left: auto; font-size: 11px; color: var(--muted); }
+  .picker .none { color: var(--muted); font-size: 12px; padding: 8px 2px; }
+  dialog {
+    border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px;
+    max-width: 380px; color: var(--fg); background: var(--bg);
+  }
+  dialog::backdrop { background: rgba(0, 0, 0, .45); }
+</style>
+
+<h1>Connector Declutter for Power Automate</h1>
+<p class="muted">Hides connectors you cannot use from the Power Automate designer&rsquo;s connector list.</p>
+
+<div class="card" id="status"><p class="small muted">Loading&hellip;</p></div>
+
+<h2>What to hide</h2>
+<label class="check">
+  <input type="checkbox" id="hideBlocked">
+  <span class="check-text">
+    <b>Connectors blocked by DLP policy</b>
+    <span>Needs policy data. Connectors your tenant marks unblockable are always kept.</span>
+  </span>
+</label>
+<div id="rules"></div>
+<div class="row"><button id="addRule">Add a filter</button><button id="resetRules">Restore default filters</button></div>
+
+<h2>My Filter</h2>
+<p class="small muted">The extension adds three filters of its own to the designer,
+  beside All, Built-in, Shared and Custom: <b>Microsoft</b>, a fixed list of
+  Microsoft&rsquo;s own connectors; <b>In Flow</b>, what the open flow
+  already uses &mdash; connectors and built-ins alike &mdash; which needs no
+  setting up; and <b>My Filter</b>, whatever is ticked
+  below. Unlike the filters above these hide nothing on their own &mdash; they apply
+  only while one of them is the selected filter in the designer, and picking
+  <b>All</b> puts everything back.</p>
+<div class="row">
+  <input type="text" id="connectorSearch" placeholder="Search connectors">
+</div>
+<p class="small muted" id="pickedCount">Loading&hellip;</p>
+<div class="picker" id="connectorPicker"></div>
+<div class="row"><button id="clearPicked">Clear all</button></div>
+<p class="small muted">This list is everything the designer has shown while the
+  extension was watching, so it starts empty and fills in the first time you open a
+  connector panel. A connector missing from it can be added by opening the panel and
+  scrolling until it appears. Changes show up in the designer the next time it builds
+  its filter list, so reload the tab if a tick does not seem to have taken.</p>
+
+<dialog id="clearDialog">
+  <p><b>Clear every ticked connector?</b></p>
+  <p class="small muted" id="clearDialogDetail"></p>
+  <p class="small muted">This cannot be undone, and if <b>My Filter</b> is the one
+    currently selected in the designer, it will start matching nothing at all.</p>
+  <div class="row">
+    <button class="primary" id="clearConfirm">Clear all</button>
+    <button id="clearCancel">Cancel</button>
+  </div>
+</dialog>
+
+<h2>Panel sections</h2>
+<p class="small muted">The designer stacks three collapsible sections above the connector
+  list. Removing one is a layout choice, not a filter &mdash; everything in it is still
+  in the list underneath and still turns up in search.</p>
+<label class="check">
+  <input type="checkbox" id="hideFavourites">
+  <span class="check-text">
+    <b>Hide the Favourites section</b>
+    <span>Connectors you have starred. They stay starred.</span>
+  </span>
+</label>
+<label class="check">
+  <input type="checkbox" id="hideAiCapabilities">
+  <span class="check-text">
+    <b>Hide the AI capabilities section</b>
+    <span>AI Builder prompts and the other AI actions the designer promotes.</span>
+  </span>
+</label>
+<label class="check">
+  <input type="checkbox" id="hideBuiltInTools">
+  <span class="check-text">
+    <b>Hide the Built-in tools section</b>
+    <span>Control, Data Operation, Variables and the rest of the built-ins.</span>
+  </span>
+</label>
+<label class="check">
+  <input type="checkbox" id="expandFavourites">
+  <span class="check-text">
+    <b>Open the Favourites list automatically</b>
+    <span>Presses <b>See all</b> in the Favourites section when the panel opens, so every
+    favourite is listed rather than the first few. Navigate back out of it and it stays
+    out until you open the panel again.</span>
+  </span>
+</label>
+<p class="small muted">These are matched by the section&rsquo;s English heading, the only thing
+  in the designer&rsquo;s markup that tells the three apart. A designer in another language
+  keeps all three sections rather than losing the wrong one.</p>
+
+<h2>Appearance</h2>
+<label class="check">
+  <input type="checkbox" id="steadyRows">
+  <span class="check-text">
+    <b>Stop rows resizing when you hover them</b>
+    <span>The designer only puts the info dot and the favourite star in a row while you
+    are pointing at it, which makes the row a fraction taller and shunts the grid about.
+    This keeps their space reserved, so every row is always the size a hovered one is.</span>
+  </span>
+</label>
+<label class="check">
+  <input type="checkbox" id="colourCode">
+  <span class="check-text">
+    <b>Colour-code connectors by DLP classification</b>
+    <span>A subtle tint over the whole connector card, separating Business from
+    Non-business connectors.</span>
+  </span>
+</label>
+<div class="card" id="colourCard">
+  <p class="small"><b>Tint colours</b></p>
+  <p class="small muted">Pick the base colour for each DLP group, and for each reason
+    a connector would otherwise be hidden. Each is applied as a faint wash so the
+    designer&rsquo;s own styling still shows through, and lightened automatically when
+    you are using a dark theme. A key beside the panel&rsquo;s close button says which
+    is which.</p>
+  <!-- Swatches and preview are generated: there is one per category rule, and
+       those are the user's to add and remove. -->
+  <div class="row colours" id="colourSwatches"></div>
+  <div class="preview" id="colourPreview"></div>
+  <p class="small muted">The colours below the first two only appear when
+    <b>Show everything</b> is switched on in the popup &mdash; with it off, those
+    connectors are not in the panel to be coloured.</p>
+  <div class="row">
+    <button id="resetColours">Restore default colours</button>
+  </div>
+</div>
+
+<h2>Policy data</h2>
+<label class="check">
+  <input type="checkbox" id="autoFetch">
+  <span class="check-text">
+    <b>Fetch DLP policies automatically</b>
+    <span>Reuses a token the Power Automate portal already holds. Only works if your account can read
+    DLP policies; otherwise it stays quiet and you can import instead.</span>
+  </span>
+</label>
+
+<div class="card">
+  <p class="small"><b>Import a policy by hand</b></p>
+  <p class="small muted">Paste the response from the governance
+    <code>/v1/policies</code> endpoint, a single policy, or just a list of connector IDs to block
+    (one per line, e.g. <code>shared_dropbox</code>).</p>
+  <div class="field"><textarea id="importText" placeholder="Paste JSON or connector IDs"></textarea></div>
+  <div class="row">
+    <button class="primary" id="importPaste">Import</button>
+    <input type="file" id="importFile" accept=".json,.txt" hidden>
+    <button id="importFileBtn">Choose a file&hellip;</button>
+  </div>
+  <div class="status" id="importStatus"></div>
+</div>
+
+<h2>Configuration</h2>
+<p class="small muted">Export everything &mdash; settings, filters and policy data &mdash; as one file.
+  Admins can hand that file to makers who cannot read DLP policies themselves.</p>
+<div class="row">
+  <button id="exportConfig">Export configuration</button>
+  <input type="file" id="configFile" accept=".json" hidden>
+  <button id="importConfigBtn">Import configuration&hellip;</button>
+</div>
+<div class="status" id="configStatus"></div>
+
+<h2>Diagnostics</h2>
+<label class="check">
+  <input type="checkbox" id="debug">
+  <span class="check-text">
+    <b>Write a debug log to the browser console</b>
+    <span>Verbose logging of what was filtered and why. Off by default; leave it off unless you are
+    chasing a problem.</span>
+  </span>
+</label>
+<div class="card">
+  <p class="small"><b>Where the log appears</b></p>
+  <p class="small muted">Every line is prefixed <code>[declutter:&hellip;]</code>. It is split across
+    three consoles, because the extension runs in three places:</p>
+  <dl class="facts small">
+    <dt>Designer tab</dt>
+    <dd>Open DevTools on <code>make.powerautomate.com</code>: filtering, pagination, network hooks,
+      settings delivery and colour coding.</dd>
+    <dt>Admin centre tab</dt>
+    <dd>Open DevTools on <code>admin.powerplatform.microsoft.com</code>: policy capture and import.</dd>
+    <dt>Service worker</dt>
+    <dd>Go to <code>chrome://extensions</code>, find Connector Declutter for Power Automate and click
+      <b>service worker</b>: storage, imports and refresh backoff.</dd>
+  </dl>
+  <p class="small muted">Logging in the designer&rsquo;s own page context only starts on the next page
+    load after you turn this on, so reload the tab to capture start-up.</p>
+  <p class="small muted">Access tokens are never logged.</p>
+</div>
+
+<script src="../common/log.js"></script>
+<script src="../common/env.js"></script>
+<script src="../common/connector-map.js"></script>
+<script src="../common/policy.js"></script>
+<script src="../common/filters.js"></script>
+<script src="../common/views.js"></script>
+<script src="../common/storage.js"></script>
+<script src="options.js"></script>

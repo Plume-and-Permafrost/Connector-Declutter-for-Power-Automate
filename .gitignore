@@ -1,0 +1,7 @@
+ref/admin.powerplatform.microsoft.com.har
+.DS_Store
+/ref
+node_modules/
+web-ext-artifacts/
+dist/
+/.vscode

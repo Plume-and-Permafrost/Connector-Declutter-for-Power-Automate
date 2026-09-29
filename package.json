@@ -1,0 +1,18 @@
+{
+  "name": "connector-declutter-for-power-automate",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Chrome and Firefox extension that hides DLP-blocked, desktop and MCP/agent connectors in the Power Automate designer.",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "firefox": "npm run stage:firefox && web-ext run",
+    "lint:firefox": "npm run stage:firefox && web-ext lint",
+    "build:firefox": "npm run stage:firefox && web-ext build --filename \"{name}-{version}-firefox.zip\"",
+    "stage:firefox": "node scripts/build-firefox.js",
+    "build:chrome": "npm run stage:chrome && web-ext build --source-dir dist/chrome --filename \"{name}-{version}-chrome.zip\"",
+    "stage:chrome": "node scripts/build-chrome.js"
+  },
+  "devDependencies": {
+    "web-ext": "^10.7.0"
+  }
+}

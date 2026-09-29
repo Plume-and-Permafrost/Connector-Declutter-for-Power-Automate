@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Connector Declutter for Power Automate</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { width: 320px; padding: 14px; }
+</style>
+<h1>Connector Declutter for Power Automate</h1>
+<p class="muted small" id="env">Checking this tab&hellip;</p>
+
+<div class="card" id="summary"><p class="small muted">Loading&hellip;</p></div>
+
+<label class="check">
+  <input type="checkbox" id="showEverything">
+  <span class="check-text">
+    <b>Show everything</b>
+    <span>Temporarily stop hiding connectors. Takes effect on the next search or panel open.</span>
+  </span>
+</label>
+
+<div class="row">
+  <button id="options">Settings</button>
+</div>
+
+<script src="../common/log.js"></script>
+<script src="../common/env.js"></script>
+<script src="popup.js"></script>

@@ -1,0 +1,112 @@
+{
+  "manifest_version": 3,
+  "name": "Connector Declutter for Power Automate",
+  "version": "0.1.1",
+  "description": "Hides DLP-blocked, desktop and agent connectors in the Power Automate designer, so the action picker lists only what you can use.",
+  "icons": {
+    "16": "src/icons/icon-16.png",
+    "32": "src/icons/icon-32.png",
+    "48": "src/icons/icon-48.png",
+    "128": "src/icons/icon-128.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://make.powerautomate.com/*",
+    "https://admin.powerplatform.microsoft.com/*"
+  ],
+  "background": {
+    "scripts": [
+      "src/common/log.js",
+      "src/common/env.js",
+      "src/common/connector-map.js",
+      "src/common/policy.js",
+      "src/common/filters.js",
+      "src/common/storage.js",
+      "src/background/service-worker.js"
+    ]
+  },
+  "action": {
+    "default_title": "Connector Declutter for Power Automate",
+    "default_popup": "src/ui/popup.html",
+    "default_icon": {
+      "16": "src/icons/icon-16.png",
+      "32": "src/icons/icon-32.png"
+    }
+  },
+  "options_page": "src/ui/options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://make.powerautomate.com/*"
+      ],
+      "js": [
+        "src/common/log.js",
+        "src/common/env.js",
+        "src/common/connector-map.js",
+        "src/common/policy.js",
+        "src/common/filters.js",
+        "src/common/views.js",
+        "src/common/paginate.js",
+        "src/common/http-hook.js",
+        "src/maker/in-flow.js",
+        "src/maker/interceptor.js",
+        "src/maker/decorate.js",
+        "src/maker/sections.js",
+        "src/maker/search-service.js",
+        "src/maker/hover.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://make.powerautomate.com/*"
+      ],
+      "js": [
+        "src/iso/log.js",
+        "src/maker/bridge.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://admin.powerplatform.microsoft.com/*"
+      ],
+      "js": [
+        "src/common/log.js",
+        "src/common/http-hook.js",
+        "src/admin/capture.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://admin.powerplatform.microsoft.com/*"
+      ],
+      "js": [
+        "src/iso/log.js",
+        "src/admin/import-ui.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "connector-declutter-for-power-automate@plume-and-permafrost.github.io",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  }
+}
